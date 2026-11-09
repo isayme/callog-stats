@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">来电速查</string>
+
+    <string name="notification_channel_name">来电速查</string>
+    <string name="notification_channel_description">监听通话状态，并在来电、去电时展示本地通话统计</string>
+    <string name="notification_title">来电速查正在运行</string>
+    <string name="notification_text">来电和去电时会显示本地通话统计</string>
+    <string name="notification_stop">停止</string>
+
+    <string name="home_subtitle">本地通话记录统计，号码不上传</string>
+    <string name="status_running">监听已开启</string>
+    <string name="status_stopped">监听未开启</string>
+    <string name="status_running_desc">来电、去电和通话中会显示统计浮层</string>
+    <string name="status_stopped_desc">开启后会常驻通知栏，用于来电时展示统计</string>
+    <string name="action_start">开启监听</string>
+    <string name="action_stop">停止监听</string>
+    <string name="status_need_permissions">请先完成下方授权</string>
+
+    <string name="permission_title">所需权限</string>
+    <string name="permission_call_log">通话记录与电话状态</string>
+    <string name="permission_call_log_desc">读取本机通话记录，并识别来电/去电状态</string>
+    <string name="permission_overlay">悬浮窗</string>
+    <string name="permission_overlay_desc">来电、去电和通话中显示统计浮层</string>
+    <string name="permission_accessibility">锁屏显示（无障碍）</string>
+    <string name="permission_accessibility_desc">开启无障碍服务后，锁屏时也能显示统计浮层</string>
+    <string name="accessibility_service_label">来电速查锁屏浮层</string>
+    <string name="accessibility_service_description">在锁屏和通话界面之上显示来电统计。不读取屏幕内容，不收集任何数据。</string>
+    <string name="permission_notification">通知</string>
+    <string name="permission_notification_desc">显示常驻通知，避免监听服务被系统回收</string>
+    <string name="permission_battery">忽略电池优化</string>
+    <string name="permission_battery_desc">降低后台监听被系统杀掉的概率</string>
+    <string name="permission_granted">已授权</string>
+    <string name="action_grant">去授权</string>
+    <string name="preview_overlay">预览浮层效果</string>
+
+    <string name="autostart_tip">小米 / HyperOS 还需在系统设置中允许自启动，并把省电策略设为“无限制”，否则来电时可能无法显示浮层。</string>
+    <string name="action_autostart">打开自启动设置</string>
+    <string name="privacy_note">所有数据仅在本机读取和计算。应用未申请网络权限。</string>
+
+    <string name="settings_title">设置</string>
+    <string name="settings_duplicate_window">重复来电窗口</string>
+    <string name="settings_duplicate_window_desc">窗口内再次来电会显示第 N 次提示</string>
+    <string name="settings_lookback">统计周期</string>
+    <string name="settings_lookback_desc">历史统计的时间范围；首次来电按全部记录判断</string>
+    <string name="settings_normalize">号码归一化匹配</string>
+    <string name="settings_normalize_desc">去除空格后，将 +86、0086 前缀归一化再比较</string>
+    <string name="settings_show_outgoing">去电时展示浮层</string>
+    <string name="settings_show_outgoing_desc">拨号时也展示该号码的历史统计</string>
+    <string name="duration_minutes">%1$d 分钟</string>
+    <string name="duration_months">%1$d 个月</string>
+    <string name="action_back">返回</string>
+
+    <string name="overlay_loading">正在查询通话记录…</string>
+    <string name="overlay_load_failed">读取通话记录失败</string>
+    <string name="overlay_first_incoming">首次来电</string>
+    <string name="overlay_no_incoming">无历史来电</string>
+    <string name="overlay_no_outgoing">无历史去电</string>
+    <string name="overlay_repeat_call">%1$d 分钟内第 %2$d 次来电</string>
+    <string name="overlay_phase_incoming">来电</string>
+    <string name="overlay_phase_outgoing">去电</string>
+    <string name="overlay_phase_in_call">通话中</string>
+    <string name="overlay_preview">预览</string>
+    <string name="overlay_incoming_summary">来电 %1$d 次 · 接听 %2$d · 未接 %3$d</string>
+    <string name="overlay_outgoing_summary">去电 %1$d 次 · 接通 %2$d</string>
+    <string name="overlay_total_talk">累计通话 %1$s</string>
+    <string name="overlay_last_answered">最近接听 %1$s · %2$s</string>
+    <string name="overlay_last_outgoing">最近去电 %1$s · %2$s</string>
+    <string name="overlay_collapsed_hint">点击展开</string>
+    <string name="overlay_expand_hint">点击收起</string>
+
+    <string name="duration_hours_minutes">%1$d 小时 %2$d 分</string>
+    <string name="duration_minutes_seconds">%1$d 分 %2$d 秒</string>
+    <string name="duration_seconds">%1$d 秒</string>
+    <string name="today">今天</string>
+    <string name="yesterday">昨天</string>
+</resources>
