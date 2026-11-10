@@ -1,0 +1,93 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release, e.g. v0.1.0'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # Derive versionName from the tag (v1.2.3 -> 1.2.3) and a monotonic
+      # versionCode from semver. Android rejects equal versionCodes on upgrade,
+      # so major*10000 + minor*100 + patch leaves room for 99 minor/patch bumps.
+      - name: Resolve version
+        id: version
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          tag="${INPUT_TAG:-$REF_NAME}"
+          version="${tag#v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag '$tag' must look like vMAJOR.MINOR.PATCH"
+            exit 1
+          fi
+          IFS=. read -r major minor patch <<< "$version"
+          code=$((major * 10000 + minor * 100 + patch))
+          {
+            echo "tag=$tag"
+            echo "name=$version"
+            echo "code=$code"
+          } >> "$GITHUB_OUTPUT"
+          echo "Building $tag (versionName=$version, versionCode=$code)"
+
+      - name: Build release APK
+        run: |
+          ./gradlew :app:assembleRelease --console=plain \
+            -Pcallstats.versionName="${{ steps.version.outputs.name }}" \
+            -Pcallstats.versionCode="${{ steps.version.outputs.code }}"
+
+      - name: Collect artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk \
+            "dist/call-stats-${{ steps.version.outputs.name }}.apk"
+          cd dist
+          sha256sum ./*.apk > SHA256SUMS.txt
+          ls -lh
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          files: |
+            dist/*.apk
+            dist/SHA256SUMS.txt
+          generate_release_notes: true
+          fail_on_unmatched_files: true

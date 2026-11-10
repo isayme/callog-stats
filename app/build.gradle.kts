@@ -10,16 +10,38 @@ android {
     namespace = "org.isayme.callstats"
     compileSdk = 36
 
+    // CI passes -Pcallstats.versionName / -Pcallstats.versionCode derived from
+    // the release tag; local builds fall back to the values below.
+    val versionNameOverride = providers.gradleProperty("callstats.versionName").orNull
+    val versionCodeOverride = providers.gradleProperty("callstats.versionCode").orNull?.toIntOrNull()
+
     defaultConfig {
         applicationId = "org.isayme.callstats"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = versionCodeOverride ?: 1
+        versionName = versionNameOverride ?: "0.1.0"
+    }
+
+    /*
+     * The app is sideloaded, not distributed through a store, so release builds
+     * share the debug key. The keystore is committed on purpose: CI and local
+     * builds must produce identically signed APKs, otherwise a new release
+     * cannot be installed over an existing install. The key is the standard
+     * public Android debug key (alias/key password are well-known).
+     */
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("signing/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
