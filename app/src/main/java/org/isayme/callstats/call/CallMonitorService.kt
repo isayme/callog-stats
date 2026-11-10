@@ -72,16 +72,32 @@ class CallMonitorService : Service() {
 
         // Constructed here (not in a field initializer) because the service base
         // context is only attached after construction.
-        phoneStateListener = object : PhoneStateListener(ContextCompat.getMainExecutor(this)) {
-            override fun onCallStateChanged(state: Int, phoneNumber: String?) {
-                val callState = when (state) {
-                    TelephonyManager.CALL_STATE_RINGING -> CallState.RINGING
-                    TelephonyManager.CALL_STATE_OFFHOOK -> CallState.OFFHOOK
-                    TelephonyManager.CALL_STATE_IDLE -> CallState.IDLE
-                    else -> return
-                }
+        val onCallState: (Int, String?) -> Unit = { state, phoneNumber ->
+            val callState = when (state) {
+                TelephonyManager.CALL_STATE_RINGING -> CallState.RINGING
+                TelephonyManager.CALL_STATE_OFFHOOK -> CallState.OFFHOOK
+                TelephonyManager.CALL_STATE_IDLE -> CallState.IDLE
+                else -> null
+            }
+            if (callState != null) {
                 previewJob?.cancel()
                 handleCallState(callState, phoneNumber)
+            }
+        }
+        phoneStateListener = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            object : PhoneStateListener(ContextCompat.getMainExecutor(this)) {
+                override fun onCallStateChanged(state: Int, phoneNumber: String?) {
+                    onCallState(state, phoneNumber)
+                }
+            }
+        } else {
+            // The executor constructor is API 29+; below that callbacks arrive on
+            // the thread that created the listener, which is the main thread here.
+            @Suppress("DEPRECATION")
+            object : PhoneStateListener() {
+                override fun onCallStateChanged(state: Int, phoneNumber: String?) {
+                    onCallState(state, phoneNumber)
+                }
             }
         }
 
@@ -348,7 +364,8 @@ class CallMonitorService : Service() {
     private fun canShowOverlay(): Boolean =
         Settings.canDrawOverlays(this) || OverlayAccessibilityService.isConnected()
 
-    private fun stopMonitoring() {        hideJob?.cancel()
+    private fun stopMonitoring() {
+        hideJob?.cancel()
         collapseJob?.cancel()
         previewJob?.cancel()
         overlayController.hide()

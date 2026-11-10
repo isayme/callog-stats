@@ -34,8 +34,10 @@ class CallLogRepository(private val contentResolver: ContentResolver) {
                 val dateIndex = cursor.getColumnIndexOrThrow(CallLog.Calls.DATE)
                 val durationIndex = cursor.getColumnIndexOrThrow(CallLog.Calls.DURATION)
 
-                buildList {
+                var scanned = 0
+                val entries = buildList {
                     while (cursor.moveToNext()) {
+                        scanned++
                         val storedNumber = cursor.getString(numberIndex).orEmpty()
                         if (!PhoneNumberMatcher.matches(storedNumber, number, mode)) continue
                         add(
@@ -48,6 +50,8 @@ class CallLogRepository(private val contentResolver: ContentResolver) {
                         )
                     }
                 }
+                Log.d(TAG, "Scanned $scanned call log rows, matched ${entries.size}")
+                entries
             }.orEmpty()
         } catch (error: SecurityException) {
             Log.w(TAG, "Call log permission is missing", error)
