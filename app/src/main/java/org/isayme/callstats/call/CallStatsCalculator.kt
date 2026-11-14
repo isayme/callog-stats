@@ -41,7 +41,7 @@ object CallStatsCalculator {
             PhoneNumberMatcher.matches(it.number, request.number, request.matchMode)
         }
 
-        val hasIncomingEver = matchingEntries.any { it.isIncomingHistory() }
+        val hasIncomingEver = matchingEntries.any { it.isIncoming() }
         val windowStart = monthsBefore(request.nowMillis, request.lookbackMonths)
         val duplicateStart = request.nowMillis - request.duplicateWindowMinutes * 60_000L
 
@@ -52,23 +52,18 @@ object CallStatsCalculator {
         for (entry in matchingEntries) {
             if (entry.dateMillis < windowStart || entry.dateMillis > request.nowMillis) continue
 
-            when (entry.type) {
-                CallTypes.INCOMING -> {
+            when {
+                entry.isIncoming() -> {
                     incoming += entry
                     if (entry.dateMillis >= duplicateStart) recentIncomingCount++
                 }
 
-                CallTypes.MISSED -> {
-                    incoming += entry
-                    if (entry.dateMillis >= duplicateStart) recentIncomingCount++
-                }
-
-                CallTypes.OUTGOING -> outgoing += entry
+                entry.type == CallTypes.OUTGOING -> outgoing += entry
             }
         }
 
-        val answered = incoming.filter { it.type == CallTypes.INCOMING && it.durationSeconds > 0 }
-        val missed = incoming.filter { it.type == CallTypes.MISSED }
+        val answered = incoming.filter { it.isAnsweredIncoming() }
+        val missed = incoming.filterNot { it.isAnsweredIncoming() }
         val connectedOutgoing = outgoing.filter { it.durationSeconds > 0 }
 
         val lastAnswered = answered.maxByOrNull { it.dateMillis }
@@ -95,8 +90,34 @@ object CallStatsCalculator {
         )
     }
 
-    private fun CallLogEntry.isIncomingHistory(): Boolean =
-        type == CallTypes.INCOMING || type == CallTypes.MISSED
+    /**
+     * Every call-log type that represents an inbound call. Besides INCOMING and
+     * MISSED this covers the variants OEMs use for calls that never reached the
+     * user: REJECTED (MIUI records a caller hanging up during ringing as type 5),
+     * BLOCKED, VOICEMAIL, and ANSWERED_EXTERNALLY (answered on another device).
+     * Without them a number that only ever called unanswered would show 0 calls.
+     */
+    private fun CallLogEntry.isIncoming(): Boolean = when (type) {
+        CallTypes.INCOMING,
+        CallTypes.MISSED,
+        CallTypes.VOICEMAIL,
+        CallTypes.REJECTED,
+        CallTypes.BLOCKED,
+        CallTypes.ANSWERED_EXTERNALLY,
+        -> true
+
+        else -> false
+    }
+
+    /**
+     * Some OEMs store a missed call as INCOMING with zero duration, so a
+     * non-zero duration is required in addition to the type check.
+     */
+    private fun CallLogEntry.isAnsweredIncoming(): Boolean = when (type) {
+        CallTypes.INCOMING -> durationSeconds > 0
+        CallTypes.ANSWERED_EXTERNALLY -> true
+        else -> false
+    }
 
     private fun monthsBefore(nowMillis: Long, months: Int): Long =
         Instant.ofEpochMilli(nowMillis)

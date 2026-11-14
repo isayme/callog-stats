@@ -86,6 +86,64 @@ class CallStatsCalculatorTest {
     }
 
     @Test
+    fun `rejected calls are counted as missed incoming calls`() {
+        // MIUI records a call that rings but is hung up by the caller as
+        // REJECTED (type 5) with a short ringing duration, not as MISSED.
+        val stats = calculate(
+            listOf(
+                entry(CallTypes.REJECTED, minutesAgo = 5, durationSeconds = 4),
+                entry(CallTypes.REJECTED, minutesAgo = 8, durationSeconds = 6),
+            ),
+        )
+
+        assertFalse(stats.isFirstIncoming)
+        assertEquals(2, stats.incomingTotal)
+        assertEquals(0, stats.incomingAnswered)
+        assertEquals(2, stats.incomingMissed)
+        assertEquals(0L, stats.incomingTalkSeconds)
+        assertEquals(now - 5 * 60_000L, stats.lastIncomingAt)
+        assertEquals(3, stats.recentIncomingCount)
+    }
+
+    @Test
+    fun `blocked and voicemail calls count as missed`() {
+        val stats = calculate(
+            listOf(
+                entry(CallTypes.BLOCKED, minutesAgo = 10, durationSeconds = 0),
+                entry(CallTypes.VOICEMAIL, minutesAgo = 20, durationSeconds = 0),
+            ),
+        )
+
+        assertEquals(2, stats.incomingTotal)
+        assertEquals(2, stats.incomingMissed)
+    }
+
+    @Test
+    fun `incoming call with zero duration counts as missed`() {
+        // Some OEMs store a missed call as INCOMING with a zero duration
+        // instead of MISSED, so it must not be reported as answered.
+        val stats = calculate(
+            listOf(entry(CallTypes.INCOMING, minutesAgo = 10, durationSeconds = 0)),
+        )
+
+        assertEquals(1, stats.incomingTotal)
+        assertEquals(0, stats.incomingAnswered)
+        assertEquals(1, stats.incomingMissed)
+    }
+
+    @Test
+    fun `externally answered calls count as answered`() {
+        val stats = calculate(
+            listOf(entry(CallTypes.ANSWERED_EXTERNALLY, minutesAgo = 10, durationSeconds = 30)),
+        )
+
+        assertEquals(1, stats.incomingTotal)
+        assertEquals(1, stats.incomingAnswered)
+        assertEquals(0, stats.incomingMissed)
+        assertEquals(30L, stats.incomingTalkSeconds)
+    }
+
+    @Test
     fun `repeat calls outside window are not counted`() {
         val stats = calculate(
             listOf(
